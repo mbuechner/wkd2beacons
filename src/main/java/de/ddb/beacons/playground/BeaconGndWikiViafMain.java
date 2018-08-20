@@ -1,5 +1,5 @@
 /* 
- * Copyright 2016, Michael Büchner <m.buechner@dnb.de>
+ * Copyright 2016-2018, Michael Büchner <m.buechner@dnb.de>
  * Deutsche Digitale Bibliothek
  * c/o Deutsche Nationalbibliothek
  * Informationsinfrastruktur
@@ -17,30 +17,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package de.ddb.beacons.others;
+package de.ddb.beacons.playground;
 
-import com.google.code.externalsorting.ExternalSort;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
-import java.util.Comparator;
 import java.util.Date;
+import java.util.Locale;
 import java.util.TreeMap;
 
-public class BeaconGndWikiViaf {
+/**
+ *
+ * @author Michael Büchner
+ */
+public class BeaconGndWikiViafMain {
 
     // BEACON file name
-    static final String beaconFilename = "beacon_gndwikiviaf.txt";
-    static final String viafFilename = "d:\\Downloads\\VIAF\\viaf-20150512-links.txt";
-    static final String[] beaconLanguages = {"WKPEN", "WKPDE", "WKPDATA"};
-    static final boolean sortBeacon = true;
-    static final String[] beaconHeader = {
+    private static final String BEACON_FILENAME = "beacon_gndwikiviaf.txt";
+    private static final String VIAF_FILENAME = "viaf-20150512-links.txt";
+    private static final String[] BEACON_HEADER = {
         "#FORMAT: BEACON",
         "#PREFIX: http://d-nb.info/gnd/",
         "#CONTACT: Michael Büchner <m.buechner@dnb.de>",
@@ -51,11 +54,11 @@ public class BeaconGndWikiViaf {
         "#TIMESTAMP:" + new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(new Date())
     };
 
-    public BeaconGndWikiViaf() {
+    public BeaconGndWikiViafMain() {
     }
 
     public static void main(String[] args) throws IOException {
-        new BeaconGndWikiViaf().run();
+        new BeaconGndWikiViafMain().run();
     }
 
     private void flush(BufferedWriter bw, ViafEntity e, String type) throws IOException {
@@ -63,9 +66,9 @@ public class BeaconGndWikiViaf {
         String url = e.getLinks().get(type);
         if (gnd != null && url != null) {
             gnd = gnd.replaceFirst("^0+(?!$)", "");
-            
-            String base = url.substring(0, url.lastIndexOf("/") + 1);
-            String last = url.substring(url.lastIndexOf("/") + 1, url.length());
+
+            String base = url.substring(0, url.lastIndexOf('/') + 1);
+            String last = url.substring(url.lastIndexOf('/') + 1, url.length());
 
             bw.write(gnd + "||" + base + URLEncoder.encode(last, "UTF-8"));
             bw.newLine();
@@ -73,16 +76,14 @@ public class BeaconGndWikiViaf {
     }
 
     private void run() throws IOException {
-        
-        // sort input file
-        File newInput = new File(viafFilename + ".sorted");
-        newInput.deleteOnExit();
-        ExternalSort.sort(new File(viafFilename), newInput);
-        
-        final String fname = sortBeacon ? beaconFilename + ".unsorted" : beaconFilename;
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(fname))) {
 
-            for (String s : beaconHeader) {
+        // sort input file
+        File newInput = new File(VIAF_FILENAME + ".sorted");
+        newInput.deleteOnExit();
+
+        try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(BEACON_FILENAME), StandardCharsets.UTF_8))) {
+
+            for (String s : BEACON_HEADER) {
                 bw.write(s);
                 bw.newLine();
             }
@@ -101,36 +102,8 @@ public class BeaconGndWikiViaf {
                     }
                     e.put(kv[0], kv[1]);
                 }
-            }          
+            }
         }
-
-        if (sortBeacon) {
-            // unsorted file
-            final File uf = new File(fname);
-
-            // sorted file
-            final File sf = new File(fname.replace(".unsorted", ""));
-            sf.createNewFile();
-
-            final Comparator<String> com = new Comparator<String>() {
-                @Override
-                public int compare(String s1, String s2) {
-                    if (s1.startsWith("#") || s2.startsWith("#")) {
-                        return 0;
-                    }
-                    final Integer i1 = Integer.parseInt(s1.substring(0, s1.indexOf("|")).replace("X", "9").replace("-", ""));
-                    final Integer i2 = Integer.parseInt(s2.substring(0, s2.indexOf("|")).replace("X", "9").replace("-", ""));
-                    return i1.compareTo(i2);
-                }
-            };
-
-            // sort that shit
-            ExternalSort.mergeSortedFiles(ExternalSort.sortInBatch(uf, com), sf);
-
-            // delete existing unsorted file
-            uf.delete();
-        }
-
     }
 }
 
@@ -181,7 +154,7 @@ class ViafEntity {
             key = "WKPDATA";
         } else if (key.equals("WKP") && value.startsWith("http://")) {
             String lang = value.substring(value.indexOf("http://") + 7, value.indexOf(".wikipedia.org/wiki/"));
-            key = "WKP" + lang.toUpperCase();
+            key = "WKP" + lang.toUpperCase(Locale.GERMANY);
         }
         links.put(key, value);
     }

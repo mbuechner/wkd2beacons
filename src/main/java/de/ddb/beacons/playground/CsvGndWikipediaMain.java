@@ -1,5 +1,5 @@
 /* 
- * Copyright 2016, Michael Büchner <m.buechner@dnb.de>
+ * Copyright 2016-2018, Michael Büchner <m.buechner@dnb.de>
  * Deutsche Digitale Bibliothek
  * c/o Deutsche Nationalbibliothek
  * Informationsinfrastruktur
@@ -17,15 +17,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package de.ddb.beacons.others;
+package de.ddb.beacons.playground;
 
-import com.google.code.externalsorting.ExternalSort;
+import de.ddb.beacons.App;
 import de.ddb.beacons.runners.BeaconGndWikipedia;
 import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Comparator;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.LoggerFactory;
@@ -40,77 +40,47 @@ import org.wikidata.wdtk.datamodel.interfaces.StatementGroup;
 import org.wikidata.wdtk.datamodel.interfaces.Value;
 import org.wikidata.wdtk.datamodel.interfaces.ValueSnak;
 import org.wikidata.wdtk.dumpfiles.DumpProcessingController;
-import de.ddb.beacons.helpers.ExampleHelpers;
+import org.slf4j.Logger;
 
+/**
+ *
+ * @author Michael Büchner
+ */
 public class CsvGndWikipediaMain implements EntityDocumentProcessor {
 
     // BEACON file name
-    static final String[] beaconLanguages = {"dewiki", "enwiki"};
-    static final String beaconFilename = "csv_{LANG}.txt";
-    static final char separator = ';';
-    static final boolean sortBeacon = true;
+    private static final String[] BEACON_LANGS = {"dewiki", "enwiki"};
+    private static final String BEACON_FILENAME = "csv_{LANG}.txt";
+    private static final char SEPARATOR = ';';
     // GND value property
-    static final String gndProperty = "P227";
+    private static final String GND_PROPERTY = "P227";
 
-    BufferedWriter bw;
-    Sites sites;
+    private final BufferedWriter bw;
+    private final Sites sites;
 
-    static final org.slf4j.Logger logger = LoggerFactory.getLogger(BeaconGndWikipedia.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(BeaconGndWikipedia.class);
 
     public static void main(String[] args) throws IOException {
 
-        ExampleHelpers.configureLogging();
-
         // init file
-        String fname = "";
-        for (String lang : beaconLanguages) {
-            fname += lang + "_";
+        final StringBuffer sb = new StringBuffer();
+        for (String lang : BEACON_LANGS) {
+            sb.append(lang);
+            sb.append('_');
         }
-        fname = beaconFilename.replace("{LANG}", fname.substring(0, fname.length() - 1));
-        fname = sortBeacon ? fname + ".unsorted" : fname;
-
-        FileWriter fw = new FileWriter(fname);
-        BufferedWriter bw = new BufferedWriter(fw);
+        final String fname = BEACON_FILENAME.replace("{LANG}", sb.toString().substring(0, sb.length() - 1));
 
         // get site urls
-        DumpProcessingController dumpProcessingController = new DumpProcessingController("wikidatawiki");
-        dumpProcessingController.setOfflineMode(ExampleHelpers.OFFLINE_MODE);
-        // Download the sites table dump and extract information
-        Sites sites = dumpProcessingController.getSitesInformation();
-
-        CsvGndWikipediaMain processor = new CsvGndWikipediaMain(bw, sites);
-        ExampleHelpers.processEntitiesFromWikidataDump(processor);
-        processor.printStatus();
-
-        // close file   
-        bw.close();
-
-        if (sortBeacon) {
-            // sorting files
-            // unsorted file
-            final File uf = new File(fname);
-
-            // tmp file for sorted results
-            final File sf = new File(fname.replace(".unsorted", ""));
-            sf.createNewFile();
-
-            final Comparator<String> com = new Comparator<String>() {
-                @Override
-                public int compare(String s1, String s2) {
-                    if (s1.startsWith("#") || s2.startsWith("#")) {
-                        return 0;
-                    }
-                    final Integer i1 = Integer.parseInt(s1.substring(0, s1.indexOf(separator)).replace("X", "9").replace("-", ""));
-                    final Integer i2 = Integer.parseInt(s2.substring(0, s2.indexOf(separator)).replace("X", "9").replace("-", ""));
-                    return i1.compareTo(i2);
-                }
-            };
-
-            // sort that shit
-            ExternalSort.mergeSortedFiles(ExternalSort.sortInBatch(uf, com), sf);
-
-            // delete existing file
-            uf.delete();
+        try (final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fname), StandardCharsets.UTF_8))) {
+            // get site urls
+            DumpProcessingController dumpProcessingController = new DumpProcessingController("wikidatawiki");
+            dumpProcessingController.setOfflineMode(false);
+            // Download the sites table dump and extract information
+            Sites sites = dumpProcessingController.getSitesInformation();
+            CsvGndWikipediaMain processor = new CsvGndWikipediaMain(bw, sites);
+            App.processEntitiesFromWikidataDump(dumpProcessingController, processor);
+            processor.printStatus();
+            // close file
         }
     }
 
@@ -123,7 +93,7 @@ public class CsvGndWikipediaMain implements EntityDocumentProcessor {
     public void processItemDocument(ItemDocument itemDocument) {
         String gnd = null;
         for (StatementGroup statementGroup : itemDocument.getStatementGroups()) {
-            if (statementGroup.getProperty().getId().equals(gndProperty)) {
+            if (statementGroup.getProperty().getId().equals(GND_PROPERTY)) {
                 gnd = getStringValue(statementGroup);
                 if (gnd == null || gnd.length() < 3) {
                     gnd = null;
@@ -138,36 +108,38 @@ public class CsvGndWikipediaMain implements EntityDocumentProcessor {
             return; // we dont have a GND id
         }
 
-        String out = "";
-        for (String lang : beaconLanguages) {
+        final StringBuffer sb = new StringBuffer();
+        for (String lang : BEACON_LANGS) {
 
             String link = null;
             try {
                 link = ((SiteLink) itemDocument.getSiteLinks().get(lang)).getPageTitle();
                 link = sites.getPageUrl(lang, link);
+            } catch (RuntimeException e) {
+                throw e;
             } catch (Exception e) {
                 // no sitelink availible
             }
 
             if (link != null && !link.isEmpty()) {
-                out += link;
+                sb.append(link);
             }
-            out += separator;
+            sb.append(SEPARATOR);
         }
 
-        if (out.length() <= beaconLanguages.length) {
+        if (sb.length() <= BEACON_LANGS.length) {
             return; // no links at all because there're only separators
         }
 
-        out = StringUtils.stripEnd(out, String.valueOf(separator));
+        final String out = StringUtils.stripEnd(sb.toString(), String.valueOf(SEPARATOR));
 
         try {
             bw.write(gnd);
-            bw.write(separator);
+            bw.write(SEPARATOR);
             bw.write(out);
             bw.newLine();
         } catch (IOException ex) {
-            logger.warn("Could not write to file " + beaconFilename, ex);
+            LOGGER.warn("Could not write to file " + BEACON_FILENAME, ex);
         }
 
     }

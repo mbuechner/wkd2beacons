@@ -1,5 +1,5 @@
 /* 
- * Copyright 2016, Michael Büchner <m.buechner@dnb.de>
+ * Copyright 2016-2018, Michael Büchner <m.buechner@dnb.de>
  * Deutsche Digitale Bibliothek
  * c/o Deutsche Nationalbibliothek
  * Informationsinfrastruktur
@@ -19,11 +19,15 @@
  */
 package de.ddb.beacons.runners;
 
-import de.ddb.beacons.helpers.EntityFactsHelper;
-import de.ddb.beacons.helpers.EntityFactsHelper.EntityType;
+import de.ddb.beacons.helpers.ConfigurationHelper;
+import de.ddb.beacons.helpers.EntityFactsHelpers;
+import de.ddb.beacons.helpers.EntityFactsHelpers.EntityType;
 import java.io.BufferedWriter;
-import java.io.FileWriter;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import org.apache.commons.lang3.StringEscapeUtils;
@@ -37,16 +41,18 @@ import org.wikidata.wdtk.datamodel.interfaces.Statement;
 import org.wikidata.wdtk.datamodel.interfaces.StatementGroup;
 import org.wikidata.wdtk.datamodel.interfaces.Value;
 import org.wikidata.wdtk.datamodel.interfaces.ValueSnak;
-import org.wikidata.wdtk.dumpfiles.DumpProcessingController;
-import de.ddb.beacons.helpers.ExampleHelpers;
-import org.wikidata.wdtk.dumpfiles.DumpContentType;
+import org.slf4j.Logger;
 
+/**
+ *
+ * @author Michael Büchner
+ */
 public class BeaconGndImage implements EntityDocumentProcessor {
 
     // BEACON file name
-    private final String beaconFilename = "{DUMPDATE}-beacon_gndimages.txt";
-    private final String csvFilename = "{DUMPDATE}-beacon_gndimages.csv";
-    private final String[] beaconHeader = {
+    private final static String BEACON_FILENAME = "{DUMPDATE}-beacon_gndimages.txt";
+    private final static String CSV_FILENAME = "{DUMPDATE}-beacon_gndimages.csv";
+    private final static String[] BEACON_HEADER = {
         "#FORMAT: BEACON",
         "#PREFIX: http://d-nb.info/gnd/",
         "#CONTACT: Michael Büchner <m.buechner@dnb.de>",
@@ -57,62 +63,46 @@ public class BeaconGndImage implements EntityDocumentProcessor {
         "#TIMESTAMP: " + new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(new Date()),
         "#FEED: " + "file:///{BEACONFILENAME}"
     };
-    private final String[] csvHeader = {
+    private final static String[] CSV_HEADER = {
         "GNDID;TYPE;IMAGE;LOGO;CREST"
     };
     // Crest (Wappen) property
-    private final String crestProperty = "P94";
+    private final static String CREST_PROP = "P94";
     // GND value property
-    private final String gndProperty = "P227";
+    private final static String GND_PROP = "P227";
     // Image property
-    private final String imageProperty = "P18";
+    private final static String IMAGE_PROP = "P18";
     // Logo property
-    private final String logoProperty = "P154";
-    private final String imagePrefix = "Special:FilePath/";
+    private final static String LOGO_PROP = "P154";
+    private final static String IMAGE_PREFIX = "Special:FilePath/";
 
-    private BufferedWriter bw_beacon;
-    private BufferedWriter bw_csv;
-    private Sites sites;
+    private final static Logger LOGGER = LoggerFactory.getLogger(BeaconGndImage.class);
 
-    private final org.slf4j.Logger logger = LoggerFactory.getLogger(BeaconGndImage.class);
+    private final BufferedWriter bw_beacon;
+    private final BufferedWriter bw_csv;
+    private final Sites sites;
 
-    public void run() throws IOException {
+    public BeaconGndImage(Sites sites, String timestamp) throws IOException {
 
-        ExampleHelpers.configureLogging();
+        this.sites = sites;
+        final String localBeaconFilename = BEACON_FILENAME.replace("{DUMPDATE}", timestamp);
 
-        // get site urls
-        DumpProcessingController dumpProcessingController = new DumpProcessingController("wikidatawiki");
-        dumpProcessingController.setOfflineMode(ExampleHelpers.OFFLINE_MODE);
+        this.bw_beacon = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(ConfigurationHelper.get().getValue("destDir") + File.separator + localBeaconFilename), StandardCharsets.UTF_8));
+        this.bw_csv = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(ConfigurationHelper.get().getValue("destDir") + File.separator + CSV_FILENAME.replace("{DUMPDATE}", timestamp)), StandardCharsets.UTF_8));
 
-        // Download the sites table dump and extract information
-        sites = dumpProcessingController.getSitesInformation();
-
-        // get file name
-        final String timestamp = dumpProcessingController.getWmfDumpFileManager().findMostRecentDump(DumpContentType.JSON).getDateStamp();
-        final String localBeaconFilename = beaconFilename.replace("{DUMPDATE}", timestamp);
-        this.bw_beacon = new BufferedWriter(new FileWriter(localBeaconFilename));
-        this.bw_csv = new BufferedWriter(new FileWriter(csvFilename.replace("{DUMPDATE}", timestamp)));
-
-        for (String s : beaconHeader) {
+        for (String s : BEACON_HEADER) {
             s = s.replace("{DUMPDATE}", timestamp);
             s = s.replace("{BEACONFILENAME}", localBeaconFilename);
             bw_beacon.write(s);
             bw_beacon.newLine();
         }
 
-        for (String s : csvHeader) {
+        for (String s : CSV_HEADER) {
             s = s.replace("{DUMPDATE}", timestamp);
             s = s.replace("{BEACONFILENAME}", localBeaconFilename);
             bw_csv.write(s);
             bw_csv.newLine();
         }
-
-        EntityFactsHelper.get().load();
-        ExampleHelpers.processEntitiesFromWikidataDump(this);
-        EntityFactsHelper.get().save();
-
-        bw_beacon.close();
-        bw_csv.close();
     }
 
     @Override
@@ -125,14 +115,14 @@ public class BeaconGndImage implements EntityDocumentProcessor {
 
         for (StatementGroup statementGroup : itemDocument.getStatementGroups()) {
             final String propId = statementGroup.getProperty().getId();
-            if (propId.equalsIgnoreCase(gndProperty)) {
+            if (propId.equalsIgnoreCase(GND_PROP)) {
                 gnd = getStringValue(statementGroup);
                 if (gnd == null || gnd.length() < 3) {
                     gnd = null;
                     continue;
                 }
                 gnd = gnd.substring(1, gnd.length() - 1);
-            } else if (propId.equalsIgnoreCase(imageProperty)) {
+            } else if (propId.equalsIgnoreCase(IMAGE_PROP)) {
                 image = getStringValue(statementGroup);
                 if (image == null || image.length() < 3) {
                     image = null;
@@ -141,8 +131,8 @@ public class BeaconGndImage implements EntityDocumentProcessor {
 
                 image = image.substring(1, image.length() - 1);
                 image = image.replace(" ", "_");
-                image = sites.getPageUrl("commonswiki", imagePrefix + image);
-            } else if (propId.equalsIgnoreCase(logoProperty)) {
+                image = sites.getPageUrl("commonswiki", IMAGE_PREFIX + image);
+            } else if (propId.equalsIgnoreCase(LOGO_PROP)) {
                 logo = getStringValue(statementGroup);
                 if (logo == null || logo.length() < 3) {
                     logo = null;
@@ -151,8 +141,8 @@ public class BeaconGndImage implements EntityDocumentProcessor {
 
                 logo = logo.substring(1, logo.length() - 1);
                 logo = logo.replace(" ", "_");
-                logo = sites.getPageUrl("commonswiki", imagePrefix + logo);
-            } else if (propId.equalsIgnoreCase(crestProperty)) {
+                logo = sites.getPageUrl("commonswiki", IMAGE_PREFIX + logo);
+            } else if (propId.equalsIgnoreCase(CREST_PROP)) {
                 crest = getStringValue(statementGroup);
                 if (crest == null || crest.length() < 3) {
                     crest = null;
@@ -161,14 +151,14 @@ public class BeaconGndImage implements EntityDocumentProcessor {
 
                 crest = crest.substring(1, crest.length() - 1);
                 crest = crest.replace(" ", "_");
-                crest = sites.getPageUrl("commonswiki", imagePrefix + crest);
+                crest = sites.getPageUrl("commonswiki", IMAGE_PREFIX + crest);
             }
         }
         if ((gnd == null || gnd.isEmpty())) {
             return;
         }
 
-        final EntityType entityType = EntityFactsHelper.get().getEntityType(gnd);
+        final EntityType entityType = EntityFactsHelpers.get().getEntityType(gnd);
 
         try {
             // CSV
@@ -192,7 +182,7 @@ public class BeaconGndImage implements EntityDocumentProcessor {
                     .append("||");
             //sb.append(entityType.getEntityTypeDescription());
             //sb.append("||");
-            if (entityType == EntityType.ERROR) {
+            if (entityType == EntityType.NA) {
                 return;
             } else if (entityType == EntityType.ORGANISATION && logo != null && !logo.isEmpty()) {
                 sb_beacon.append(logo);
@@ -213,7 +203,7 @@ public class BeaconGndImage implements EntityDocumentProcessor {
             bw_beacon.newLine();
             bw_beacon.flush();
         } catch (IOException ex) {
-            logger.warn("Problem at GND Id " + gnd, ex);
+            LOGGER.warn("Problem at GND Id {}", gnd, ex);
         }
     }
 
@@ -229,5 +219,20 @@ public class BeaconGndImage implements EntityDocumentProcessor {
             }
         }
         return null;
+    }
+
+    public void close() throws IOException {
+
+        try {
+            bw_beacon.close();
+        } catch (IOException e) {
+            //nothing
+        }
+
+        try {
+            bw_csv.close();
+        } catch (IOException e) {
+            //nothing
+        }
     }
 }

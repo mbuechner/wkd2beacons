@@ -1,21 +1,37 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+/* 
+ * Copyright 2016-2018, Michael Büchner <m.buechner@dnb.de>
+ * Deutsche Digitale Bibliothek
+ * c/o Deutsche Nationalbibliothek
+ * Informationsinfrastruktur
+ * Adickesallee 1, D-60322 Frankfurt am Main 
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package de.ddb.beacons.playground;
 
-import de.ddb.beacons.helpers.EntityFactsHelper;
-import de.ddb.beacons.helpers.ExampleHelpers;
+import de.ddb.beacons.App;
+import de.ddb.beacons.helpers.EntityFactsHelpers;
 import java.io.BufferedWriter;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import org.apache.commons.lang3.StringEscapeUtils;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wikidata.wdtk.datamodel.interfaces.EntityDocumentProcessor;
 import org.wikidata.wdtk.datamodel.interfaces.ItemDocument;
 import org.wikidata.wdtk.datamodel.interfaces.PropertyDocument;
-import org.wikidata.wdtk.datamodel.interfaces.Sites;
 import org.wikidata.wdtk.datamodel.interfaces.Statement;
 import org.wikidata.wdtk.datamodel.interfaces.StatementGroup;
 import org.wikidata.wdtk.datamodel.interfaces.Value;
@@ -25,7 +41,7 @@ import org.wikidata.wdtk.dumpfiles.DumpProcessingController;
 
 /**
  *
- * @author buechner
+ * @author Michael Büchner
  */
 public class FindDuplicatesMain implements EntityDocumentProcessor {
 
@@ -38,8 +54,7 @@ public class FindDuplicatesMain implements EntityDocumentProcessor {
 
     private final String outputFilename = "{DUMPDATE}-" + PROP01 + "-to-" + PROP02 + ".txt";
 
-    private final org.slf4j.Logger LOG = LoggerFactory.getLogger(FindDuplicatesMain.class);
-    private Sites sites;
+    private final Logger LOG = LoggerFactory.getLogger(FindDuplicatesMain.class);
     private BufferedWriter outputFile;
 
     public static void main(String[] args) throws IOException {
@@ -48,21 +63,17 @@ public class FindDuplicatesMain implements EntityDocumentProcessor {
 
     private void run() throws IOException {
 
-        ExampleHelpers.configureLogging();
-
         // get site urls
         DumpProcessingController dumpProcessingController = new DumpProcessingController("wikidatawiki");
-        dumpProcessingController.setOfflineMode(ExampleHelpers.OFFLINE_MODE);
+        dumpProcessingController.setOfflineMode(false);
 
         final String timestamp = dumpProcessingController.getWmfDumpFileManager().findMostRecentDump(DumpContentType.JSON).getDateStamp();
-        outputFile = new BufferedWriter(new FileWriter(outputFilename.replace("{DUMPDATE}", timestamp)));
 
-        // Download the sites table dump and extract information
-        sites = dumpProcessingController.getSitesInformation();
+        outputFile = new BufferedWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputFilename.replace("{DUMPDATE}", timestamp)), StandardCharsets.UTF_8)));
 
-        EntityFactsHelper.get().load();
-        ExampleHelpers.processEntitiesFromWikidataDump(this);
-        EntityFactsHelper.get().save();
+        EntityFactsHelpers.get().load();
+        App.processEntitiesFromWikidataDump(dumpProcessingController, this);
+        EntityFactsHelpers.get().save();
 
         outputFile.close();
     }

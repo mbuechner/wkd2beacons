@@ -1,5 +1,5 @@
 /* 
- * Copyright 2016, Michael Büchner <m.buechner@dnb.de>
+ * Copyright 2016-2018, Michael Büchner <m.buechner@dnb.de>
  * Deutsche Digitale Bibliothek
  * c/o Deutsche Nationalbibliothek
  * Informationsinfrastruktur
@@ -35,7 +35,7 @@ import org.wikidata.wdtk.util.Timer;
  * be used to abort processing in a relatively clean way by catching this
  * exception at a higher level.
  *
- * @author Markus Kroetzsch
+ * @author Markus Kroetzsch, Michael Büchner
  *
  */
 public class EntityTimerProcessor implements EntityDocumentProcessor {
@@ -105,9 +105,7 @@ public class EntityTimerProcessor implements EntityDocumentProcessor {
      * Prints the current status, time and entity count.
      */
     private void printStatus() {
-        LOG.info("Processed " + this.entityCount + " entities in "
-                + this.lastSeconds + " sec ("
-                + (this.entityCount / this.lastSeconds) + " per second)");
+        LOG.info("Processed {} entities in {} sec ({} per second)", this.entityCount, this.lastSeconds, this.entityCount / this.lastSeconds);
     }
 
     private void startTimer() {
@@ -115,8 +113,7 @@ public class EntityTimerProcessor implements EntityDocumentProcessor {
         this.timer.start();
     }
 
-    public class TimeoutException extends RuntimeException {
-
+    public static class TimeoutException extends RuntimeException {
         private static final long serialVersionUID = -1083533602730765194L;
     }
 }
