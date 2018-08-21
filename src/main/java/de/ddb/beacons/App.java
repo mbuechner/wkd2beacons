@@ -63,6 +63,7 @@ public class App {
         options.addOption("o", true,
                 String.format("Destination folder (default: %s)", ConfigurationHelper.get().getValue("destDir")));
         options.addOption("h", false, "Print help text");
+        options.addOption("v", false, "Print version");
 
         try {
             final CommandLineParser parser = new DefaultParser();
@@ -77,7 +78,10 @@ public class App {
 
             if (cmd.hasOption("h")) {
                 final HelpFormatter help = new HelpFormatter();
-                help.printHelp("java -jar wkd2beacons.jar", options);
+                help.printHelp("java -jar wkd2beacons.jar", options, true);
+                return;
+            } else if (cmd.hasOption("v")) {
+                System.out.println("Version 1.1");
                 return;
             }
         } catch (ParseException e) {
