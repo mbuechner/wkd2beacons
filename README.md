@@ -33,10 +33,10 @@ usage: java -jar wkd2beacons.jar [-d <arg>] [-h] [-o <arg>] [-v]
 ### Entity type database
 wkd2beacons needs to know the entity type (e.g. person, place, family, organization) of a GND entity to decide which depiction is useful for the BEACON file. The tool will create a new local database (*File name schama:* ``data/entities-{YYYYMMDD}.db``) with its first run (That will take much longer time!). For the next runtime wkd2beacons will reuse this database and *not* ask Entity Facts service again (That's much faster!).
 
-|                                                 | Runtime          |
-|-------------------------------------------------|------------------|
-| First run (building local entity type database) | 3day 7hour 4min  |
-| Next run(s) (using local entity type database ) | 0day 2hour 17min |
+|                                                 | Download of Wikidata dumps     | Runtime                         |
+|-------------------------------------------------|--------------------------------|---------------------------------|
+| First run(s) (using local entity type database) | 0 days 5 hours 23 min. 51 sec. | 2 days 13 hours 12 min. 12 sec. |
+| Next run(s) (using local entity type database)  | approx. same                   | 0 days 2 hours 17 min. 20 sec.  |
 
 **It's recommended to rebuild the local Entity type database regularly. Data will become obsolete and have a negative affects.**
 
