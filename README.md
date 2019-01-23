@@ -1,6 +1,6 @@
 # wkd2beacons - A Generator for BEACON files: [Gemeinsame Normdatei (GND)](https://en.wikipedia.org/wiki/Integrated_Authority_File) ↔ Wikidata 
-Maven documentation: https://mbuechner.github.io/wkd2beacons/
-Version: 1.2 (21-01-2019)
+- Maven documentation: https://mbuechner.github.io/wkd2beacons/
+- Version: 1.2 (21-01-2019)
 ## Compile
 ### Fat-Jar Package with all Dependencies
 ```sh
