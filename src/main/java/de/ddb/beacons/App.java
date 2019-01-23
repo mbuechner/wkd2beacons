@@ -19,15 +19,23 @@
  */
 package de.ddb.beacons;
 
-import de.ddb.beacons.helpers.ConfigurationHelper;
-import de.ddb.beacons.helpers.EntityFactsHelpers;
+import de.ddb.beacons.helpers.Configuration;
+import de.ddb.beacons.helpers.EntityFacts;
 import de.ddb.beacons.helpers.EntityTimerProcessor;
 import de.ddb.beacons.runners.BeaconGndImage;
 import de.ddb.beacons.runners.BeaconGndWikidata;
 import de.ddb.beacons.runners.BeaconGndWikipedia;
 import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wikidata.wdtk.datamodel.interfaces.EntityDocumentProcessor;
@@ -35,12 +43,6 @@ import org.wikidata.wdtk.datamodel.interfaces.EntityDocumentProcessorBroker;
 import org.wikidata.wdtk.datamodel.interfaces.Sites;
 import org.wikidata.wdtk.dumpfiles.DumpContentType;
 import org.wikidata.wdtk.dumpfiles.DumpProcessingController;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
 
 /**
  *
@@ -48,20 +50,19 @@ import org.apache.commons.cli.ParseException;
  */
 public class App {
 
-    public static enum DumpProcessingMode {
+    private static enum DumpProcessingMode {
         JSON, CURRENT_REVS, ALL_REVS, CURRENT_REVS_WITH_DAILIES, ALL_REVS_WITH_DAILIES, JUST_ONE_DAILY_FOR_TEST
     }
-    public static final DumpProcessingMode DUMP_FILE_MODE = DumpProcessingMode.JSON;
-    public static final int TIMEOUT_SEC = 0;
+    private final static DumpProcessingMode DUMP_FILE_MODE = DumpProcessingMode.JSON;
+
+    private final static int TIMEOUT_SEC = 0;
     private final static Logger LOG = LoggerFactory.getLogger(App.class);
 
     public static void main(String[] args) throws IOException {
 
         final Options options = new Options();
-        options.addOption("d", true,
-                String.format("Folder to stored all downloaded Wikidata dumps and entity type database (default: %s)", ConfigurationHelper.get().getValue("dataDir")));
-        options.addOption("o", true,
-                String.format("Destination folder (default: %s)", ConfigurationHelper.get().getValue("destDir")));
+        options.addOption("d", true, "Folder to stored all downloaded Wikidata dumps and entity type database (default: data/)");
+        options.addOption("o", true, "Destination folder (default: beacons/)");
         options.addOption("h", false, "Print help text");
         options.addOption("v", false, "Print version");
 
@@ -69,53 +70,68 @@ public class App {
             final CommandLineParser parser = new DefaultParser();
             final CommandLine cmd = parser.parse(options, args);
             if (cmd.hasOption("d")) {
-                ConfigurationHelper.get().setValue("dataDir", cmd.getOptionValue("d"));
+                Configuration.get().setValue("dataDir", cmd.getOptionValue("d"));
             }
 
             if (cmd.hasOption("o")) {
-                ConfigurationHelper.get().setValue("destDir", cmd.getOptionValue("o"));
+                Configuration.get().setValue("destDir", cmd.getOptionValue("o"));
             }
 
             if (cmd.hasOption("h")) {
                 final HelpFormatter help = new HelpFormatter();
-                help.printHelp("java -jar wkd2beacons.jar", options, true);
+                help.printHelp("java -Dlog.file=wkd2beacons.log -jar wkd2beacons.jar", options, true);
                 return;
             } else if (cmd.hasOption("v")) {
-                System.out.println("Version 1.1");
+                System.out.println("Version 1.2");
                 return;
             }
         } catch (ParseException e) {
             LOG.error(e.getLocalizedMessage());
         }
 
-        App.run();
+        final App app = new App();
+        app.run();
     }
 
-    private static void run() throws IOException {
-        final long start = System.currentTimeMillis();
+    private void run() throws IOException {
 
-        final File destDir = new File(ConfigurationHelper.get().getValue("destDir"));
+        final long start = System.currentTimeMillis();
+        final File destDir = new File(Configuration.get().getValue("destDir"));
 
         boolean folderExisted = destDir.exists() || destDir.mkdirs();
         if (!folderExisted) {
-            LOG.error("Could not create directory {}", ConfigurationHelper.get().getValue("destDir"));
+            LOG.error("Could not create directory {}", Configuration.get().getValue("destDir"));
             return;
         }
 
         // load EF database (if exist)
-        EntityFactsHelpers.get().load();
+        EntityFacts.get().load();
 
         // get site urls
         final DumpProcessingController dumpProcessingController = new DumpProcessingController("wikidatawiki");
         dumpProcessingController.setOfflineMode(false);
 
         // Use another download directory:
-        dumpProcessingController.setDownloadDirectory(ConfigurationHelper.get().getValue("dataDir"));
+        dumpProcessingController.setDownloadDirectory(Configuration.get().getValue("dataDir"));
 
         // Download the sites table dump and extract information
         final Sites sites = dumpProcessingController.getSitesInformation();
-        // get file name
-        final String timestamp = dumpProcessingController.getWmfDumpFileManager().findMostRecentDump(DumpContentType.JSON).getDateStamp();
+
+        // get timestamp and format it as ISO
+        String timestamp = dumpProcessingController.getWmfDumpFileManager().findMostRecentDump(DumpContentType.JSON).getDateStamp();
+
+        final SimpleDateFormat parser = new SimpleDateFormat("yyyyMMdd");
+        Date date = null;
+        try {
+            date = parser.parse(timestamp);
+        } catch (java.text.ParseException ex) {
+            // nothing
+        }
+
+        if (date != null) {
+            final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+            timestamp = formatter.format(date);
+        }
 
         final BeaconGndImage bgi = new BeaconGndImage(sites, timestamp);
         final BeaconGndWikidata bgwd = new BeaconGndWikidata(timestamp);
@@ -130,7 +146,7 @@ public class App {
         processEntitiesFromWikidataDump(dumpProcessingController, edpb);
 
         // shutdown
-        EntityFactsHelpers.get().save();
+        EntityFacts.get().save();
         bgi.close();
         bgwd.close();
         bgwp.close();
@@ -153,7 +169,7 @@ public class App {
      * @param entityDocumentProcessor the object to use for processing entities
      * in this dump
      */
-    public static void processEntitiesFromWikidataDump(DumpProcessingController dumpProcessingController, EntityDocumentProcessor entityDocumentProcessor) {
+    private void processEntitiesFromWikidataDump(DumpProcessingController dumpProcessingController, EntityDocumentProcessor entityDocumentProcessor) {
 
         // Should we process historic revisions or only current ones?
         boolean onlyCurrentRevisions;

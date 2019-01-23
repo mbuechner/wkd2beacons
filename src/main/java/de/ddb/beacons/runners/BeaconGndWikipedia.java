@@ -19,21 +19,18 @@
  */
 package de.ddb.beacons.runners;
 
-import de.ddb.beacons.helpers.ConfigurationHelper;
+import de.ddb.beacons.helpers.Configuration;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.wikidata.wdtk.datamodel.interfaces.EntityDocumentProcessor;
 import org.wikidata.wdtk.datamodel.interfaces.ItemDocument;
 import org.wikidata.wdtk.datamodel.interfaces.PropertyDocument;
@@ -68,7 +65,7 @@ public class BeaconGndWikipedia implements EntityDocumentProcessor {
         "#ISIL: {LANG}",
         "#COLLID: {LANG}",
         "#DESCRIPTION: This is a condordance for GND URIs to \"{LANG}\". Made from Wikidata dump {DUMPDATE}.",
-        "#TIMESTAMP: " + new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(new Date()),
+        "#TIMESTAMP: {DUMPDATE}",
         "#FEED: " + "file:///{BEACONFILENAME}"
     };
 
@@ -93,11 +90,11 @@ public class BeaconGndWikipedia implements EntityDocumentProcessor {
         for (String lang : BEACON_LANGS) {
 
             // get file name
-            String fname = BEACON_FILENAME.replace("{DUMPDATE}", timestamp);
+            String fname = BEACON_FILENAME.replace("{DUMPDATE}", timestamp.replaceAll("-", ""));
             fname = fname.replace("{LANG}", lang);
             final String fnameForHeader = fname;
 
-            final OutputStreamWriter fw = new OutputStreamWriter(new FileOutputStream(ConfigurationHelper.get().getValue("destDir") + File.separator + fname), StandardCharsets.UTF_8);
+            final OutputStreamWriter fw = new OutputStreamWriter(new FileOutputStream(Configuration.get().getValue("destDir") + File.separator + fname), StandardCharsets.UTF_8);
             fws.put(lang, fw);
             final BufferedWriter bw = new BufferedWriter(fw);
             bws.put(lang, bw);
@@ -106,11 +103,11 @@ public class BeaconGndWikipedia implements EntityDocumentProcessor {
             for (String s : BEACON_HEADER) {
                 // we have different ISIL than Wikidata
                 if (ISIL_CONCORDANCE.containsKey(lang)) {
-                    s = s.replace("{DUMPDATE}", timestamp).replace("{LANG}", ISIL_CONCORDANCE.get(lang));
+                    s = s.replaceAll("\\{DUMPDATE\\}", timestamp).replace("{LANG}", ISIL_CONCORDANCE.get(lang));
                 } else {
-                    s = s.replace("{DUMPDATE}", timestamp).replace("{LANG}", lang);
+                    s = s.replaceAll("\\{DUMPDATE\\}", timestamp).replace("{LANG}", lang);
                 }
-                s = s.replace("{BEACONFILENAME}", fnameForHeader);
+                s = s.replaceAll("\\{BEACONFILENAME\\}", fnameForHeader);
                 bw.write(s);
                 bw.newLine();
             }

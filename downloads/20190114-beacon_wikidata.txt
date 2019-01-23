@@ -1,0 +1,13 @@
+#FORMAT: BEACON
+#PREFIX: http://d-nb.info/gnd/
+#CONTACT: Michael Büchner <m.buechner@dnb.de>
+#INSTITUTION: Deutsche Digitale Bibliothek <https://www.deutsche-digitale-bibliothek.de/>
+#ISIL: WIKIDATA
+#COLLID: WIKIDATA
+#DESCRIPTION: This is a concordance for GND URIs to Wikidata data records. Made from Wikidata dump 2019-01-14.
+#TIMESTAMP: 2019-01-14
+#FEED: file:///20190114-beacon_wikidata.txt
+4005406-8||http://www.wikidata.org/entity/Q31
+4021325-0||http://www.wikidata.org/entity/Q8
+11876439X||http://www.wikidata.org/entity/Q23
+...

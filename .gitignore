@@ -1,14 +1,7 @@
-# Compiled class file
-*.class
-
 # Log file
 *.log
+*IS_UNDEFINED*
 
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
 
 # Package Files #
 *.jar
@@ -18,10 +11,8 @@
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
-
 beacons/
 data/
 target/
 [0-9]*/
+nbactions-release-profile.xml

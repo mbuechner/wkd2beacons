@@ -1,0 +1,13 @@
+#FORMAT: BEACON
+#PREFIX: http://d-nb.info/gnd/
+#CONTACT: Michael Büchner <m.buechner@dnb.de>
+#INSTITUTION: Deutsche Digitale Bibliothek <https://www.deutsche-digitale-bibliothek.de/>
+#ISIL: WKPDE
+#COLLID: WKPDE
+#DESCRIPTION: This is a condordance for GND URIs to "WKPDE". Made from Wikidata dump 2019-01-14.
+#TIMESTAMP: 2019-01-14
+#FEED: file:///20190114-beacon_dewiki.txt
+4005406-8||https://de.wikipedia.org/wiki/Belgien
+4021325-0||https://de.wikipedia.org/wiki/Gl%C3%BCck
+11876439X||https://de.wikipedia.org/wiki/George_Washington
+...

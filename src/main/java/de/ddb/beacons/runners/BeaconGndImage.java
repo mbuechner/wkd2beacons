@@ -19,20 +19,18 @@
  */
 package de.ddb.beacons.runners;
 
-import de.ddb.beacons.helpers.ConfigurationHelper;
-import de.ddb.beacons.helpers.EntityFactsHelpers;
-import de.ddb.beacons.helpers.EntityFactsHelpers.EntityType;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+import de.ddb.beacons.helpers.Configuration;
+import de.ddb.beacons.helpers.EntityFacts;
+import de.ddb.beacons.helpers.EntityFacts.EntityType;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import org.apache.commons.lang3.StringEscapeUtils;
-import org.slf4j.LoggerFactory;
-
 import org.wikidata.wdtk.datamodel.interfaces.EntityDocumentProcessor;
 import org.wikidata.wdtk.datamodel.interfaces.ItemDocument;
 import org.wikidata.wdtk.datamodel.interfaces.PropertyDocument;
@@ -41,7 +39,7 @@ import org.wikidata.wdtk.datamodel.interfaces.Statement;
 import org.wikidata.wdtk.datamodel.interfaces.StatementGroup;
 import org.wikidata.wdtk.datamodel.interfaces.Value;
 import org.wikidata.wdtk.datamodel.interfaces.ValueSnak;
-import org.slf4j.Logger;
+
 
 /**
  *
@@ -60,11 +58,8 @@ public class BeaconGndImage implements EntityDocumentProcessor {
         "#ISIL: WIKIMEDIA",
         "#COLLID: WIKIMEDIA",
         "#DESCRIPTION: This is a concordance for GND URIs to the entity's image (P18) and logo (P154) at Wikimedia Commons. Made from Wikidata dump {DUMPDATE}.",
-        "#TIMESTAMP: " + new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(new Date()),
+        "#TIMESTAMP: {DUMPDATE}",
         "#FEED: " + "file:///{BEACONFILENAME}"
-    };
-    private final static String[] CSV_HEADER = {
-        "GNDID;TYPE;IMAGE;LOGO;CREST"
     };
     // Crest (Wappen) property
     private final static String CREST_PROP = "P94";
@@ -85,23 +80,17 @@ public class BeaconGndImage implements EntityDocumentProcessor {
     public BeaconGndImage(Sites sites, String timestamp) throws IOException {
 
         this.sites = sites;
-        final String localBeaconFilename = BEACON_FILENAME.replace("{DUMPDATE}", timestamp);
+        final String localBeaconFilename = BEACON_FILENAME.replace("{DUMPDATE}", timestamp.replaceAll("-", ""));
+        final String localCsvFilename = CSV_FILENAME.replace("{DUMPDATE}", timestamp.replaceAll("-", ""));
 
-        this.bw_beacon = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(ConfigurationHelper.get().getValue("destDir") + File.separator + localBeaconFilename), StandardCharsets.UTF_8));
-        this.bw_csv = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(ConfigurationHelper.get().getValue("destDir") + File.separator + CSV_FILENAME.replace("{DUMPDATE}", timestamp)), StandardCharsets.UTF_8));
+        this.bw_beacon = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(Configuration.get().getValue("destDir") + File.separator + localBeaconFilename), StandardCharsets.UTF_8));
+        this.bw_csv = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(Configuration.get().getValue("destDir") + File.separator + localCsvFilename), StandardCharsets.UTF_8));
 
         for (String s : BEACON_HEADER) {
-            s = s.replace("{DUMPDATE}", timestamp);
-            s = s.replace("{BEACONFILENAME}", localBeaconFilename);
+            s = s.replaceAll("\\{DUMPDATE\\}", timestamp);
+            s = s.replaceAll("\\{BEACONFILENAME\\}", localBeaconFilename);
             bw_beacon.write(s);
             bw_beacon.newLine();
-        }
-
-        for (String s : CSV_HEADER) {
-            s = s.replace("{DUMPDATE}", timestamp);
-            s = s.replace("{BEACONFILENAME}", localBeaconFilename);
-            bw_csv.write(s);
-            bw_csv.newLine();
         }
     }
 
@@ -158,7 +147,7 @@ public class BeaconGndImage implements EntityDocumentProcessor {
             return;
         }
 
-        final EntityType entityType = EntityFactsHelpers.get().getEntityType(gnd);
+        final EntityType entityType = EntityFacts.get().getEntityType(gnd);
 
         try {
             // CSV
@@ -182,18 +171,25 @@ public class BeaconGndImage implements EntityDocumentProcessor {
                     .append("||");
             //sb.append(entityType.getEntityTypeDescription());
             //sb.append("||");
-            if (entityType == EntityType.NA) {
-                return;
+            if (entityType == EntityType.NA && logo != null && !logo.isEmpty()) {
+                sb_beacon.append(logo);
+            } else if (entityType == EntityType.NA && image != null && !image.isEmpty()) {
+                sb_beacon.append(image);
             } else if (entityType == EntityType.ORGANISATION && logo != null && !logo.isEmpty()) {
                 sb_beacon.append(logo);
             } else if (entityType == EntityType.ORGANISATION && image != null && !image.isEmpty()) {
                 sb_beacon.append(image);
             } else if (entityType == EntityType.PERSON && image != null && !image.isEmpty()) {
                 sb_beacon.append(image);
-            } else if (entityType == EntityType.PERSON && crest != null && !crest.isEmpty()) {
-                // sb_beacon.append(crest);
-                return;
-            } else if (image != null && !image.isEmpty()) {
+            } else if (entityType == EntityType.FAMILY && crest != null && !crest.isEmpty()) {
+                sb_beacon.append(crest);
+            } else if (entityType == EntityType.FAMILY && image != null && !image.isEmpty()) {
+                sb_beacon.append(image);
+            } else if (entityType == EntityType.EVENT && logo != null && !logo.isEmpty()) {
+                sb_beacon.append(logo);
+            } else if (entityType == EntityType.EVENT && image != null && !image.isEmpty()) {
+                sb_beacon.append(image);
+            } else if (entityType == EntityType.PLACE && image != null && !image.isEmpty()) {
                 sb_beacon.append(image);
             } else {
                 return;

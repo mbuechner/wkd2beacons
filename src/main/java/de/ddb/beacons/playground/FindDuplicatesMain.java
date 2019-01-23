@@ -19,8 +19,8 @@
  */
 package de.ddb.beacons.playground;
 
-import de.ddb.beacons.App;
-import de.ddb.beacons.helpers.EntityFactsHelpers;
+import de.ddb.beacons.helpers.EntityFacts;
+import de.ddb.beacons.helpers.EntityTimerProcessor;
 import java.io.BufferedWriter;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -57,6 +57,12 @@ public class FindDuplicatesMain implements EntityDocumentProcessor {
     private final Logger LOG = LoggerFactory.getLogger(FindDuplicatesMain.class);
     private BufferedWriter outputFile;
 
+    private static enum DumpProcessingMode {
+        JSON, CURRENT_REVS, ALL_REVS, CURRENT_REVS_WITH_DAILIES, ALL_REVS_WITH_DAILIES, JUST_ONE_DAILY_FOR_TEST
+    }
+    private final static DumpProcessingMode DUMP_FILE_MODE = DumpProcessingMode.JSON;
+    private final static int TIMEOUT_SEC = 0;
+
     public static void main(String[] args) throws IOException {
         new FindDuplicatesMain().run();
     }
@@ -71,9 +77,9 @@ public class FindDuplicatesMain implements EntityDocumentProcessor {
 
         outputFile = new BufferedWriter(new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputFilename.replace("{DUMPDATE}", timestamp)), StandardCharsets.UTF_8)));
 
-        EntityFactsHelpers.get().load();
-        App.processEntitiesFromWikidataDump(dumpProcessingController, this);
-        EntityFactsHelpers.get().save();
+        EntityFacts.get().load();
+        processEntitiesFromWikidataDump(dumpProcessingController, this);
+        EntityFacts.get().save();
 
         outputFile.close();
     }
@@ -119,6 +125,60 @@ public class FindDuplicatesMain implements EntityDocumentProcessor {
             }
         }
         return null;
+    }
+
+    public void processEntitiesFromWikidataDump(DumpProcessingController dumpProcessingController, EntityDocumentProcessor entityDocumentProcessor) {
+
+        // Should we process historic revisions or only current ones?
+        boolean onlyCurrentRevisions;
+        switch (DUMP_FILE_MODE) {
+            case ALL_REVS:
+            case ALL_REVS_WITH_DAILIES:
+                onlyCurrentRevisions = false;
+                break;
+            case CURRENT_REVS:
+            case CURRENT_REVS_WITH_DAILIES:
+            case JSON:
+            case JUST_ONE_DAILY_FOR_TEST:
+            default:
+                onlyCurrentRevisions = true;
+        }
+
+        // Subscribe to the most recent entity documents of type wikibase item:
+        dumpProcessingController.registerEntityDocumentProcessor(entityDocumentProcessor, null, onlyCurrentRevisions);
+
+        // Also add a timer that reports some basic progress information:
+        EntityTimerProcessor entityTimerProcessor = new EntityTimerProcessor(TIMEOUT_SEC);
+        dumpProcessingController.registerEntityDocumentProcessor(entityTimerProcessor, null, onlyCurrentRevisions);
+
+        try {
+            // Start processing (may trigger downloads where needed):
+            switch (DUMP_FILE_MODE) {
+                case ALL_REVS:
+                case CURRENT_REVS:
+                    dumpProcessingController.processMostRecentMainDump();
+                    break;
+                case ALL_REVS_WITH_DAILIES:
+                case CURRENT_REVS_WITH_DAILIES:
+                    dumpProcessingController.processAllRecentRevisionDumps();
+                    break;
+                case JSON:
+                    dumpProcessingController.processMostRecentJsonDump();
+                    break;
+                case JUST_ONE_DAILY_FOR_TEST:
+                    dumpProcessingController.processMostRecentDailyDump();
+                    break;
+                default:
+                    throw new RuntimeException("Unsupported dump processing type " + DUMP_FILE_MODE);
+            }
+        } catch (EntityTimerProcessor.TimeoutException e) {
+            // The timer caused a time out. Continue and finish normally.
+        } catch (RuntimeException e) {
+            LOG.error("Error processing data dump", e);
+        }
+
+        // Print final timer results:
+        entityTimerProcessor.stop();
     }
 
 }

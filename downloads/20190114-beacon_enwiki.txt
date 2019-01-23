@@ -1,0 +1,13 @@
+#FORMAT: BEACON
+#PREFIX: http://d-nb.info/gnd/
+#CONTACT: Michael Büchner <m.buechner@dnb.de>
+#INSTITUTION: Deutsche Digitale Bibliothek <https://www.deutsche-digitale-bibliothek.de/>
+#ISIL: WKP
+#COLLID: WKP
+#DESCRIPTION: This is a condordance for GND URIs to "WKP". Made from Wikidata dump 2019-01-14.
+#TIMESTAMP: 2019-01-14
+#FEED: file:///20190114-beacon_enwiki.txt
+4005406-8||https://en.wikipedia.org/wiki/Belgium
+4021325-0||https://en.wikipedia.org/wiki/Happiness
+11876439X||https://en.wikipedia.org/wiki/George_Washington
+...

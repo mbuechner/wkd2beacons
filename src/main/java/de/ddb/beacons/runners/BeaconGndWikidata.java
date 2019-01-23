@@ -19,15 +19,13 @@
  */
 package de.ddb.beacons.runners;
 
-import de.ddb.beacons.helpers.ConfigurationHelper;
+import de.ddb.beacons.helpers.Configuration;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +53,7 @@ public class BeaconGndWikidata implements EntityDocumentProcessor {
         "#ISIL: WIKIDATA",
         "#COLLID: WIKIDATA",
         "#DESCRIPTION: This is a concordance for GND URIs to Wikidata data records. Made from Wikidata dump {DUMPDATE}.",
-        "#TIMESTAMP: " + new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(new Date()),
+        "#TIMESTAMP: {DUMPDATE}",
         "#FEED: " + "file:///{BEACONFILENAME}"
     };
 
@@ -67,13 +65,13 @@ public class BeaconGndWikidata implements EntityDocumentProcessor {
 
     public BeaconGndWikidata(String timestamp) throws IOException {
 
-        final String fname = BEACON_FILENAME.replace("{DUMPDATE}", timestamp);
+        final String fname = BEACON_FILENAME.replace("{DUMPDATE}", timestamp.replaceAll("-", ""));
 
-        this.bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(ConfigurationHelper.get().getValue("destDir") + File.separator + fname), StandardCharsets.UTF_8));
+        this.bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(Configuration.get().getValue("destDir") + File.separator + fname), StandardCharsets.UTF_8));
 
         for (String s : BEACON_HEADER) {
-            s = s.replace("{DUMPDATE}", timestamp);
-            s = s.replace("{BEACONFILENAME}", fname);
+            s = s.replaceAll("\\{DUMPDATE\\}", timestamp);
+            s = s.replaceAll("\\{BEACONFILENAME\\}", fname);
             bw.write(s);
             bw.newLine();
         }
@@ -98,7 +96,7 @@ public class BeaconGndWikidata implements EntityDocumentProcessor {
         }
         if (gnd != null && gnd.length() > 0) {
             try {
-                final String s = gnd + "||https://www.wikidata.org/wiki/" + itemDocument.getItemId().getId();
+                final String s = gnd + "||http://www.wikidata.org/entity/" + itemDocument.getEntityId().getId();
                 bw.write(s);
                 bw.newLine();
             } catch (IOException ex) {
