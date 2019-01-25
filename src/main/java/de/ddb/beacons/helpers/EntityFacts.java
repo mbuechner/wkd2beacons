@@ -80,7 +80,7 @@ public class EntityFacts {
     }
 
     public void save() {
-        final String filename = DB_FILENAME_PREFIX + DB_FILENAME_SUFFIX.replace("{{date}}", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(new Date()));
+        final String filename = DB_FILENAME_PREFIX + DB_FILENAME_SUFFIX.replace("{{date}}", new SimpleDateFormat("yyyyMMdd").format(new Date()));
         final File file = new File(Configuration.get().getValue("dataDir") + File.separator + filename);
 
         if (!file.exists()) {
