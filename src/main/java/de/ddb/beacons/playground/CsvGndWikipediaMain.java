@@ -178,7 +178,7 @@ public class CsvGndWikipediaMain implements EntityDocumentProcessor {
         return null;
     }
 
-    public static void processEntitiesFromWikidataDump(DumpProcessingController dumpProcessingController, EntityDocumentProcessor entityDocumentProcessor) {
+    public static void processEntitiesFromWikidataDump(DumpProcessingController dumpProcessingController, EntityDocumentProcessor entityDocumentProcessor) throws IOException {
 
         // Should we process historic revisions or only current ones?
         boolean onlyCurrentRevisions;
@@ -217,7 +217,7 @@ public class CsvGndWikipediaMain implements EntityDocumentProcessor {
                     dumpProcessingController.processMostRecentJsonDump();
                     break;
                 case JUST_ONE_DAILY_FOR_TEST:
-                    dumpProcessingController.processMostRecentDailyDump();
+                    dumpProcessingController.processMostRecentMainDump();
                     break;
                 default:
                     throw new RuntimeException("Unsupported dump processing type " + DUMP_FILE_MODE);

@@ -102,7 +102,7 @@ public class FindDuplicatesMain implements EntityDocumentProcessor {
         if (prop01 != null && prop02 != null) {
             if (prop01.equalsIgnoreCase(prop02)) {
                 try {
-                    outputFile.write(itemDocument.getItemId() + "\t" + prop01);
+                    outputFile.write(itemDocument.getEntityId().getId() + "\t" + prop01);
                     outputFile.newLine();
                 } catch (IOException ex) {
                     LOG.error("Could not write to file", ex);
@@ -127,7 +127,7 @@ public class FindDuplicatesMain implements EntityDocumentProcessor {
         return null;
     }
 
-    public void processEntitiesFromWikidataDump(DumpProcessingController dumpProcessingController, EntityDocumentProcessor entityDocumentProcessor) {
+    public void processEntitiesFromWikidataDump(DumpProcessingController dumpProcessingController, EntityDocumentProcessor entityDocumentProcessor) throws IOException {
 
         // Should we process historic revisions or only current ones?
         boolean onlyCurrentRevisions;
@@ -166,7 +166,7 @@ public class FindDuplicatesMain implements EntityDocumentProcessor {
                     dumpProcessingController.processMostRecentJsonDump();
                     break;
                 case JUST_ONE_DAILY_FOR_TEST:
-                    dumpProcessingController.processMostRecentDailyDump();
+                    dumpProcessingController.processMostRecentMainDump();
                     break;
                 default:
                     throw new RuntimeException("Unsupported dump processing type " + DUMP_FILE_MODE);

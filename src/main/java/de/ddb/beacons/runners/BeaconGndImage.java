@@ -30,7 +30,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
-import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.text.StringEscapeUtils;
+import org.h2.mvstore.MVMap;
+import org.h2.mvstore.MVStore;
+import org.h2.mvstore.type.StringDataType;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.wikidata.wdtk.datamodel.interfaces.EntityDocumentProcessor;
 import org.wikidata.wdtk.datamodel.interfaces.ItemDocument;
 import org.wikidata.wdtk.datamodel.interfaces.PropertyDocument;
@@ -39,7 +43,6 @@ import org.wikidata.wdtk.datamodel.interfaces.Statement;
 import org.wikidata.wdtk.datamodel.interfaces.StatementGroup;
 import org.wikidata.wdtk.datamodel.interfaces.Value;
 import org.wikidata.wdtk.datamodel.interfaces.ValueSnak;
-
 
 /**
  *
@@ -77,7 +80,12 @@ public class BeaconGndImage implements EntityDocumentProcessor {
     private final BufferedWriter bw_csv;
     private final Sites sites;
 
+    @Autowired
+    private MVStore store;
+    private final MVMap<String, String> map;
+
     public BeaconGndImage(Sites sites, String timestamp) throws IOException {
+        map = store.openMap(getClass().getName(), new MVMap.Builder<String, String>().keyType(StringDataType.INSTANCE).valueType(StringDataType.INSTANCE));
 
         this.sites = sites;
         final String localBeaconFilename = BEACON_FILENAME.replace("{DUMPDATE}", timestamp.replaceAll("-", ""));

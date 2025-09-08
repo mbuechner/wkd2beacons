@@ -51,7 +51,7 @@ import org.wikidata.wdtk.dumpfiles.DumpProcessingController;
 public class App {
 
     private static enum DumpProcessingMode {
-        JSON, CURRENT_REVS, ALL_REVS, CURRENT_REVS_WITH_DAILIES, ALL_REVS_WITH_DAILIES, JUST_ONE_DAILY_FOR_TEST
+        JSON, CURRENT_REVS, ALL_REVS, CURRENT_REVS_WITH_DAILIES, ALL_REVS_WITH_DAILIES, JUST_ONE_MAIN_FOR_TEST
     }
     private final static DumpProcessingMode DUMP_FILE_MODE = DumpProcessingMode.JSON;
 
@@ -169,7 +169,7 @@ public class App {
      * @param entityDocumentProcessor the object to use for processing entities
      * in this dump
      */
-    private void processEntitiesFromWikidataDump(DumpProcessingController dumpProcessingController, EntityDocumentProcessor entityDocumentProcessor) {
+    private void processEntitiesFromWikidataDump(DumpProcessingController dumpProcessingController, EntityDocumentProcessor entityDocumentProcessor) throws IOException {
 
         // Should we process historic revisions or only current ones?
         boolean onlyCurrentRevisions;
@@ -181,7 +181,7 @@ public class App {
             case CURRENT_REVS:
             case CURRENT_REVS_WITH_DAILIES:
             case JSON:
-            case JUST_ONE_DAILY_FOR_TEST:
+            case JUST_ONE_MAIN_FOR_TEST:
             default:
                 onlyCurrentRevisions = true;
         }
@@ -196,22 +196,11 @@ public class App {
         try {
             // Start processing (may trigger downloads where needed):
             switch (DUMP_FILE_MODE) {
-                case ALL_REVS:
-                case CURRENT_REVS:
-                    dumpProcessingController.processMostRecentMainDump();
-                    break;
-                case ALL_REVS_WITH_DAILIES:
-                case CURRENT_REVS_WITH_DAILIES:
-                    dumpProcessingController.processAllRecentRevisionDumps();
-                    break;
-                case JSON:
-                    dumpProcessingController.processMostRecentJsonDump();
-                    break;
-                case JUST_ONE_DAILY_FOR_TEST:
-                    dumpProcessingController.processMostRecentDailyDump();
-                    break;
-                default:
-                    throw new RuntimeException("Unsupported dump processing type " + DUMP_FILE_MODE);
+                case ALL_REVS, CURRENT_REVS -> dumpProcessingController.processMostRecentMainDump();
+                case ALL_REVS_WITH_DAILIES, CURRENT_REVS_WITH_DAILIES -> dumpProcessingController.processAllRecentRevisionDumps();
+                case JSON -> dumpProcessingController.processMostRecentJsonDump();
+                case JUST_ONE_MAIN_FOR_TEST -> dumpProcessingController.processMostRecentMainDump();
+                default -> throw new RuntimeException("Unsupported dump processing type " + DUMP_FILE_MODE);
             }
         } catch (EntityTimerProcessor.TimeoutException e) {
             // The timer caused a time out. Continue and finish normally.

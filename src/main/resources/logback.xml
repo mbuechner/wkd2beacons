@@ -6,7 +6,7 @@
             <level>INFO</level>
         </filter>
         <encoder>
-            <pattern>%d{yyyy-MM-dd'T'HH:mm:ss,SS} [%thread] %-5level %logger{5} - %msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd'T'HH:mm:ss} [%thread] %-5level %logger{5} - %msg%n</pattern>
         </encoder>
     </appender>
     
@@ -17,7 +17,7 @@
         <file>${log.file}</file>
         <append>false</append>
         <encoder>
-            <pattern>%d{yyyy-MM-dd'T'HH:mm:ss,SS} [%thread] %-5level %logger{5} - %msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd'T'HH:mm:ss} [%thread] %-5level %logger{5} - %msg%n</pattern>
         </encoder>
     </appender>
 
