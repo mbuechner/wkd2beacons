@@ -1,20 +1,12 @@
 HELP.md
-beacons/*
-target/*
-!.mvn/wrapper/maven-wrapper.jar
+spring-shell.log
+log.file_IS_UNDEFINED
+target/
+beacons/
+data/
+.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
-*.db
-*.log
-*.file_IS_UNDEFINED
-*.db.wal
-*.csv
-*.csv.gz
-.env
-nb-configuration.xml
-data/*
-tmp/*
-.idea
 
 ### STS ###
 .apt_generated
@@ -43,4 +35,3 @@ build/
 
 ### VS Code ###
 .vscode/
-/nbactions.xml
