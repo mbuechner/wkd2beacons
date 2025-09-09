@@ -47,7 +47,8 @@ public class CommonsLicensesMVOnly {
 
     public static void main(String[] args) throws Exception {
         if (args.length < 2) {
-            log.error("Usage:\n  build-rev   <store.mvstore>\n  join        <store.mvstore> <commons-mediainfo.json[.gz|.bz2]>\n  export-json <store.mvstore> <out.ndjson>\n  fetch       <url> <destPath> [sha256hex]");
+            log.error(
+                    "Usage:\n  build-rev   <store.mvstore>\n  join        <store.mvstore> <commons-mediainfo.json[.gz|.bz2]>\n  export-json <store.mvstore> <out.ndjson>\n  fetch       <url> <destPath> [sha256hex]");
             System.exit(1);
         }
         switch (args[0]) {
@@ -119,7 +120,9 @@ public class CommonsLicensesMVOnly {
             MVMap<String, String> gnd2lic = openStrMap(store, MAP_GND2LIC);
 
             long seen = 0, writes = 0;
-            try (InputStream raw = openMaybeCompressed(dumpPath); InputStream in = new BufferedInputStream(raw, 1 << 20); JsonParser p = jf.createParser(in)) {
+            try (InputStream raw = openMaybeCompressed(dumpPath);
+                    InputStream in = new BufferedInputStream(raw, 1 << 20);
+                    JsonParser p = jf.createParser(in)) {
 
                 JsonToken t = p.nextToken();
                 if (t == JsonToken.START_ARRAY) {
@@ -185,7 +188,8 @@ public class CommonsLicensesMVOnly {
     // NDJSON exportieren
     static void exportNdjson(String storePath, String outPath) throws Exception {
         ObjectMapper om = new ObjectMapper();
-        try (MVStore store = new MVStore.Builder().fileName(storePath).open(); BufferedWriter bw = Files.newBufferedWriter(Paths.get(outPath))) {
+        try (MVStore store = new MVStore.Builder().fileName(storePath).open();
+                BufferedWriter bw = Files.newBufferedWriter(Paths.get(outPath))) {
 
             MVMap<String, String> gnd2file = openStrMap(store, MAP_GND2FILE);
             MVMap<String, String> gnd2lic = openStrMap(store, MAP_GND2LIC);
@@ -254,7 +258,8 @@ public class CommonsLicensesMVOnly {
             }
             boolean append = existing > 0 && resp.code() == 206;
             Files.createDirectories(dest.getParent() == null ? Paths.get(".") : dest.getParent());
-            try (InputStream in = resp.body().byteStream(); OutputStream out = new BufferedOutputStream(new FileOutputStream(tmp.toFile(), append), 1 << 20)) {
+            try (InputStream in = resp.body().byteStream();
+                    OutputStream out = new BufferedOutputStream(new FileOutputStream(tmp.toFile(), append), 1 << 20)) {
                 byte[] buf = new byte[1 << 20];
                 int r;
                 long total = existing;
@@ -322,7 +327,8 @@ public class CommonsLicensesMVOnly {
     }
 
     static String toJsonValue(String file, String lic, String st) {
-        return "{\"file\":\"" + jsonEsc(file) + "\",\"license\":\"" + jsonEsc(lic) + "\",\"status\":\"" + jsonEsc(st) + "\"}";
+        return "{\"file\":\"" + jsonEsc(file) + "\",\"license\":\"" + jsonEsc(lic) + "\",\"status\":\"" + jsonEsc(st)
+                + "\"}";
     }
 
     static String canon(String name) {

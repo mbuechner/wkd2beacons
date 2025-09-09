@@ -121,8 +121,15 @@ public class EntityFacts {
         LOG.info("Loading entity type database from {}...", this.loadedFile.getName());
 
         try (final ObjectInputStream ois = new ObjectInputStream(new FileInputStream(this.loadedFile))) {
-            entities = (HashMap) ois.readObject();
-            LOG.info("Entity type database has {} entries.", entities.size());
+            Object obj = ois.readObject();
+            if (obj instanceof Map) {
+                final Map<String, EntityType> casted = (Map<String, EntityType>) obj;
+                entities = casted;
+                LOG.info("Entity type database has {} entries.", entities.size());
+            } else {
+                LOG.warn("Loaded object is not of expected type Map<String, EntityType>.");
+                entities = new HashMap<>();
+            }
         } catch (IOException | ClassNotFoundException ex) {
             LOG.warn("Error loading entity type database. {}", ex.getMessage());
         }

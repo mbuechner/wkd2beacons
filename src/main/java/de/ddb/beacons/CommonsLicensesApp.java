@@ -49,7 +49,7 @@ public class CommonsLicensesApp {
     }
 
     @Bean
-    MVStore getMvStore() throws IOException {
+    public MVStore getMvStore() throws IOException {
         if (store == null) {
             final File tmpFile = File.createTempFile("wd2beacon", ".db");
             tmpFile.deleteOnExit();
@@ -59,7 +59,7 @@ public class CommonsLicensesApp {
     }
 
     @Bean
-    OkHttpClient getOkHttpClient() {
+    public OkHttpClient getOkHttpClient() {
         if (httpClient == null) {
             httpClient = new OkHttpClient.Builder()
                     .connectTimeout(java.time.Duration.ofSeconds(30))
