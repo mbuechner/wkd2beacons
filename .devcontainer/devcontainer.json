@@ -4,7 +4,11 @@
 	"name": "Java",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
 	"image": "mcr.microsoft.com/devcontainers/java:21",
-
+    "hostRequirements": {
+    	"storage": "128gb",
+    	"memory": "8gb",
+    	"cpus": 2
+  	},
 	"features": {
 		"ghcr.io/devcontainers/features/java:1": {
 			"version": "21",
